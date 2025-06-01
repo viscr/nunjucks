@@ -47,7 +47,7 @@ class Compiler extends Obj {
     const id = this._tmpid();
     this.bufferStack.push(this.buffer);
     this.buffer = id;
-    this._emit(`var ${this.buffer} = "";`);
+    this._emit("var " + this.buffer + " = \"\"; var directValDetails = {}; var res__ ;");
     return id;
   }
 
@@ -73,7 +73,7 @@ class Compiler extends Obj {
     this._emitLine(`function ${name}(env, context, frame, runtime, cb) {`);
     this._emitLine(`var lineno = ${node.lineno};`);
     this._emitLine(`var colno = ${node.colno};`);
-    this._emitLine(`var ${this.buffer} = "";`);
+    this._emitLine("var " + this.buffer + " = \"\"; var directValDetails = {}; var res__ ;");
     this._emitLine('try {');
   }
 
@@ -197,8 +197,8 @@ class Compiler extends Obj {
     var contentArgs = node.contentArgs;
     var autoescape = typeof node.autoescape === 'boolean' ? node.autoescape : true;
 
-    if (!async) {
-      this._emit(`${this.buffer} += runtime.suppressValue(`);
+    if(!async){
+      this._emit("res__ = ")
     }
 
     this._emit(`env.getExtension("${node.extName}")["${node.prop}"](`);
@@ -254,12 +254,15 @@ class Compiler extends Obj {
     if (async) {
       const res = this._tmpid();
       this._emitLine(', ' + this._makeCallback(res));
+      this._emitLine("updateDirectValue(" + res + ", directValDetails, " + this.buffer + " );\n" )
       this._emitLine(
         `${this.buffer} += runtime.suppressValue(${res}, ${autoescape} && env.opts.autoescape);`);
       this._addScopeLevel();
     } else {
       this._emit(')');
-      this._emit(`, ${autoescape} && env.opts.autoescape);\n`);
+      this._emitLine("updateDirectValue(res__, directValDetails, " + this.buffer + " );\n" )
+      this._emit(this.buffer + " += runtime.suppressValue(");
+      this._emit("res__, " + autoescape + " && env.opts.autoescape);\n");
     }
   }
 
@@ -1103,7 +1106,7 @@ class Compiler extends Obj {
           this._emitLine(';');
         }
       } else {
-        this._emit(`${this.buffer} += runtime.suppressValue(`);
+        this._emit("res__ = " );
         if (this.throwOnUndefined) {
           this._emit('runtime.ensureDefined(');
         }
@@ -1111,7 +1114,10 @@ class Compiler extends Obj {
         if (this.throwOnUndefined) {
           this._emit(`,${node.lineno},${node.colno})`);
         }
-        this._emit(', env.opts.autoescape);\n');
+        this._emit(";\n");
+        this._emit('runtime.updateDirectValue(res__ , directValDetails, '+ this.buffer + ' );\n')
+        this._emit(this.buffer + " += runtime.suppressValue(");
+        this._emit('res__, env.opts.autoescape);\n');
       }
     });
   }
@@ -1129,7 +1135,8 @@ class Compiler extends Obj {
     this._emitLine('if(parentTemplate) {');
     this._emitLine('parentTemplate.rootRenderFunc(env, context, frame, runtime, cb);');
     this._emitLine('} else {');
-    this._emitLine(`cb(null, ${this.buffer});`);
+    this._emitLine('directValDetails.strVal = ' + this.buffer + ";")
+    this._emitLine('cb(null , directValDetails);')
     this._emitLine('}');
     this._emitFuncEnd(true);
 

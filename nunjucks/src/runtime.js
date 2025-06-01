@@ -216,6 +216,16 @@ function suppressValue(val, autoescape) {
   return val;
 }
 
+function updateDirectValue(val , directValDetails , outputStr){
+  if(directValDetails.dvSet == null && outputStr.length == 0){
+    directValDetails.dvSet = true;
+    directValDetails.val = val;
+  }
+  else{
+    directValDetails.dvSet = false;
+  }
+}
+
 function ensureDefined(val, lineno, colno) {
   if (val === null || val === undefined) {
     throw new lib.TemplateError(
@@ -363,6 +373,7 @@ module.exports = {
   makeKeywordArgs: makeKeywordArgs,
   numArgs: numArgs,
   suppressValue: suppressValue,
+  updateDirectValue:updateDirectValue,
   ensureDefined: ensureDefined,
   memberLookup: memberLookup,
   contextOrFrameLookup: contextOrFrameLookup,
